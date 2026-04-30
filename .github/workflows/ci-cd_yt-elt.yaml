@@ -48,7 +48,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push-image
     env:
-      # এনভায়রনমেন্ট ভেরিয়েবলসমূহ
       AIRFLOW_WWW_USER_PASSWORD: ${{ secrets.AIRFLOW_WWW_USER_PASSWORD }}
       AIRFLOW_WWW_USER_USERNAME: ${{ secrets.AIRFLOW_WWW_USER_USERNAME }}
       API_KEY: ${{ secrets.API_KEY }}
@@ -73,7 +72,6 @@ jobs:
       DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
       DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY }}
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
-      # লগের IMAGE_TAG ওয়ার্নিং ফিক্স করার জন্য
       IMAGE_TAG: latest
 
     steps:
@@ -90,11 +88,11 @@ jobs:
             docker-compose.yaml
 
       - name: Create dummy .env file
-        # এটি ডকার কম্পোজকে এরর দেওয়া থেকে বিরত রাখবে
-        if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
+        # এই লাইনটি আপনার লগের ওই '.env not found' এরর ফিক্স করবে
         run: touch .env
 
       - name: Set up Docker Compose
+        # ফাইল চেঞ্জ হোক বা না হোক, ম্যানুয়ালি চালালে যেন রান হয় তাই কন্ডিশন চেক
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker compose up -d
 
