@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push-image
     env:
-      # আপনার সব Secret এবং Variable এখানে রাখা হয়েছে
+      # এনভায়রনমেন্ট ভেরিয়েবলসমূহ
       AIRFLOW_WWW_USER_PASSWORD: ${{ secrets.AIRFLOW_WWW_USER_PASSWORD }}
       AIRFLOW_WWW_USER_USERNAME: ${{ secrets.AIRFLOW_WWW_USER_USERNAME }}
       API_KEY: ${{ secrets.API_KEY }}
@@ -73,6 +73,9 @@ jobs:
       DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
       DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY }}
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+      # লগের IMAGE_TAG ওয়ার্নিং ফিক্স করার জন্য
+      IMAGE_TAG: latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -86,17 +89,21 @@ jobs:
             include/**
             docker-compose.yaml
 
+      - name: Create dummy .env file
+        # এটি ডকার কম্পোজকে এরর দেওয়া থেকে বিরত রাখবে
+        if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: touch .env
+
       - name: Set up Docker Compose
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker compose up -d
 
       - name: Wait for Airflow Init
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
-        run: sleep 60 # ডাটাবেস এবং ড্যাগ লোড হতে সময় দেওয়া
+        run: sleep 60 
 
       - name: Run Unit and Integration Tests
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
-        # কন্টেইনারের নাম ফিক্স করা হয়েছে: ytelt-airflow-worker-1
         run: docker exec -t ytelt-airflow-worker-1 sh -c "pytest tests/ -v"
 
       - name: Run End-to-End DAG Tests
