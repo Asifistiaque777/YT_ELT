@@ -1,0 +1,8 @@
+data_source pg_datasource:
+  type: postgres
+  username: yt_api_user
+  password: X57tmQ846GYP3Jgb
+  host: postgres
+  port: 5432
+  database: elt_db
+  schema: ${SCHEMA}
