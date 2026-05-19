@@ -4,7 +4,7 @@ import os
 from datetime import date
 from airflow.decorators import task
 
-# ১. সরাসরি Environment Variables থেকে রিড করা
+
 API_KEY = os.getenv("API_KEY")
 CHANNEL_HANDLE = os.getenv("CHANNEL_HANDLE") 
 maxResults = 50
@@ -32,7 +32,7 @@ def get_playlist_id():
 
 @task 
 def get_video_ids(playlist_id):
-    # এয়ারফ্লো অনেক সময় XCom থেকে ডেটা স্ট্রিং হিসেবে পাঠায়, তাই ক্লিন করে নেওয়া ভালো
+  
     if not playlist_id:
         raise ValueError("playlist_id is empty or None")
         
@@ -64,7 +64,7 @@ def get_video_ids(playlist_id):
         print(f"Error fetching videos: {e}")
         raise e
 
-# এটি সাধারণ ফাংশন হিসেবেই থাকবে, @task দেওয়ার দরকার নেই কারণ এটি অন্য টাস্কের ভেতরে কাজ করে
+
 def batch_list(video_id_lst, batch_size):
     for i in range(0, len(video_id_lst), batch_size):
         yield video_id_lst[i : i + batch_size]

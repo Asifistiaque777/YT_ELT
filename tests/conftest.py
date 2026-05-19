@@ -8,7 +8,6 @@ from airflow.models import Variable, Connection, DagBag
 
 @pytest.fixture
 def api_key():
-    # .env থেকে মান না পেলে মক কী ব্যবহার করবে
     mock_val = os.getenv("API_KEY", "MOCK_KEY1234")
     with mock.patch.dict("os.environ", AIRFLOW_VAR_API_KEY=mock_val):
         yield Variable.get("API_KEY")
@@ -41,7 +40,6 @@ def mock_postgres_conn_vars():
 
 @pytest.fixture()
 def dagbag():
-    # এয়ারফ্লো ড্যাগব্যাগ লোড করার জন্য (ড্যাগ চেক করতে কাজে লাগে)
     return DagBag(dag_folder='dags', include_examples=False)
 
 @pytest.fixture()
@@ -51,16 +49,13 @@ def airflow_variable():
         return os.getenv(env_var)
     return get_airflow_variable
 
-# --- Real Database Connection Fixture ---
-# এটি আপনার ইন্টিগ্রেশন টেস্টের জন্য ব্যবহার করবেন
 
 @pytest.fixture
 def real_postgres_connection():
-    # আপনার .env ফাইলে থাকা নামগুলো এখানে ব্যবহার করা হয়েছে
     dbname = os.getenv("ELT_DATABASE_NAME", "elt_db")
     user = os.getenv("ELT_DATABASE_USERNAME", "yt_api_user")
     password = os.getenv("ELT_DATABASE_PASSWORD", "X57tmQ846GYP3Jgb")
-    host = os.getenv("POSTGRES_CONN_HOST", "postgres") # কন্টেইনারের ভেতর থেকে host 'postgres'
+    host = os.getenv("POSTGRES_CONN_HOST", "postgres") 
     port = os.getenv("POSTGRES_CONN_PORT", "5432")
 
     conn = None

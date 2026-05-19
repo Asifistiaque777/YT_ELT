@@ -3,7 +3,6 @@ import pendulum
 from datetime import datetime, timedelta
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
-# আপনার কাস্টম মডিউলগুলো ইমপোর্ট করা হচ্ছে
 from api.video_stats import (
     get_playlist_id,
     get_video_ids,
@@ -14,7 +13,6 @@ from api.video_stats import (
 from datawarehouse.dwh import staging_table, core_table
 from dataquality.soda import yt_elt_data_quality
 
-# টাইমজোন সেটআপ
 local_tz = pendulum.timezone("Europe/Malta")
 
 # Default Args
@@ -31,7 +29,6 @@ default_args = {
     "start_date": datetime(2025, 1, 1, tzinfo=local_tz),
 }
 
-# ভেরিয়েবল (স্কিমা নামগুলো এখানে ডিফাইন করা ভালো)
 staging_schema = "staging"
 core_schema = "core"
 
@@ -53,7 +50,7 @@ with DAG(
     trigger_update_db = TriggerDagRunOperator(
         task_id="trigger_update_db",
         trigger_dag_id="update_db",
-        wait_for_completion=True, # এটি দিলে প্রথম DAG শেষ না হওয়া পর্যন্ত দ্বিতীয়টি শুরু হবে না
+        wait_for_completion=True, 
     )
 
     playlist_id_task >> video_ids_task >> extract_data_task >> save_to_json_task >> trigger_update_db
@@ -91,7 +88,6 @@ with DAG(
     tags=['youtube', 'quality_check'],
 ) as dag_quality:
 
-    # এখানে স্কিমা অনুযায়ী টাস্ক ডিফাইন করা হয়েছে
     soda_validate_staging = yt_elt_data_quality(staging_schema)
     soda_validate_core = yt_elt_data_quality(core_schema)
 

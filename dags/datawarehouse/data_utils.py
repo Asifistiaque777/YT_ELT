@@ -2,13 +2,10 @@ import psycopg2
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from psycopg2.extras import RealDictCursor
 
-# টেবিলের নাম কনফিগারেশন
 TABLE_NAME = "yt_api"
 
 def get_conn_cursor():
-    """এয়ারফ্লো কানেকশন আইডি ব্যবহার করে ডাটাবেসে কানেক্ট করা"""
     try:
-        # নিশ্চিত করুন এয়ারফ্লো Admin > Connections এ 'postgres_db_elt' আইডিটি আছে
         hook = PostgresHook(postgres_conn_id="postgres_db_elt")
         conn = hook.get_conn()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -31,7 +28,6 @@ def create_schema(schema):
 
 def create_table(schema):
     conn, cur = get_conn_cursor()
-    # কলামের নামগুলো ছোট হাতের রাখা হয়েছে যাতে কুয়েরি করতে সুবিধা হয়
     columns_sql = """
         video_id VARCHAR(255) PRIMARY KEY,
         title TEXT,
@@ -57,7 +53,6 @@ def get_all_video_ids(schema):
     conn, cur = None, None
     try:
         conn, cur = get_conn_cursor()
-        # টেবিল আছে কি না চেক করা
         cur.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = '{TABLE_NAME}');")
         if not cur.fetchone()['exists']:
             return []

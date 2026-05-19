@@ -88,11 +88,9 @@ jobs:
             docker-compose.yaml
 
       - name: Create dummy .env file
-        # এই লাইনটি আপনার লগের ওই '.env not found' এরর ফিক্স করবে
         run: touch .env
 
       - name: Set up Docker Compose
-        # ফাইল চেঞ্জ হোক বা না হোক, ম্যানুয়ালি চালালে যেন রান হয় তাই কন্ডিশন চেক
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker compose up -d
 

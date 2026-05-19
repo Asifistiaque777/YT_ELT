@@ -63,24 +63,16 @@ def core_table():
         conn, cur = get_conn_cursor()
         table_ids = set(get_all_video_ids(schema))
 
-        # কলামের নামগুলো স্পষ্টভাবে বড় হাতের অক্ষরে সিলেক্ট করা হয়েছে
-        cur.execute(f'SELECT "Video_ID", "Video_Title", "Upload_Date", "Duration", "Video_Views", "Likes_Count", "Comments_Count" FROM staging.{table};')
+        cur.execute(f'SELECT video_id, title, published_at, duration, view_count, like_count, comment_count FROM staging.{table};')
         rows = cur.fetchall()
 
         current_staging_ids = set()
         for row in rows:
-            # row-কে ডিকশনারিতে রূপান্তর করে ট্রান্সফর্ম করা
-            transformed_row = transform_data(dict(row)) 
-            
-            # লগের KeyError সমাধান: এখানে Video_ID (বড় হাতের) ব্যবহার করা হয়েছে
-            v_id = transformed_row.get("Video_ID") 
-            
+            transformed_row = transform_data(dict(row))
+            v_id = transformed_row.get("video_id")
             if not v_id:
-                # যদি ট্রান্সফরমেশনের পর ছোট হাতের হয়ে যায়, তবে সেফটি চেক
-                v_id = transformed_row.get("video_id")
-
+                continue
             current_staging_ids.add(v_id)
-
             if v_id in table_ids:
                 update_rows(cur, conn, schema, transformed_row)
             else:

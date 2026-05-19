@@ -2,96 +2,86 @@ import logging
 
 logger = logging.getLogger(__name__)
 table = "yt_api"
+
 def insert_rows(cur, conn, schema, row):
     try:
-        # ১. স্কিমা অনুযায়ী কলাম ম্যাপিং এবং ডিকশনারি কি (Key) সেট করা
         if schema == "staging":
-            # জেসন ফাইল থেকে সরাসরি আসা কি (Keys)
-            mapping = {
-                "id": "video_id", "title": "title", "date": "publishedAt",
-                "duration": "duration", "views": "viewCount", 
-                "likes": "likeCount", "comments": "commentCount"
-            }
-            # ON CONFLICT আপডেট করার সময় Video_Type নেই কারণ স্ট্যাজিংয়ে এটি থাকে না
+            columns = '(video_id, title, published_at, duration, view_count, like_count, comment_count)'
+            values = '(%(video_id)s, %(title)s, %(publishedAt)s, %(duration)s, %(viewCount)s, %(likeCount)s, %(commentCount)s)'
             update_set = """
-                "Video_Title" = EXCLUDED."Video_Title",
-                "Upload_Date" = EXCLUDED."Upload_Date",
-                "Duration" = EXCLUDED."Duration",
-                "Video_Views" = EXCLUDED."Video_Views",
-                "Likes_Count" = EXCLUDED."Likes_Count",
-                "Comments_Count" = EXCLUDED."Comments_Count"
+                title = EXCLUDED.title,
+                published_at = EXCLUDED.published_at,
+                duration = EXCLUDED.duration,
+                view_count = EXCLUDED.view_count,
+                like_count = EXCLUDED.like_count,
+                comment_count = EXCLUDED.comment_count
             """
-            columns = '("Video_ID", "Video_Title", "Upload_Date", "Duration", "Video_Views", "Likes_Count", "Comments_Count")'
-            values = f"(%({mapping['id']})s, %({mapping['title']})s, %({mapping['date']})s, %({mapping['duration']})s, %({mapping['views']})s, %({mapping['likes']})s, %({mapping['comments']})s)"
-        
-
+            id_key = "video_id"
         else:
-            # কোর টেবিলের জন্য ট্রান্সফর্ম করা কি (Keys)
-            mapping = {"id": "Video_ID"} # কোর-এ কি এবং কলাম একই হয়
+            columns = '(video_id, title, published_at, duration, video_type, view_count, like_count, comment_count)'
+            values = '(%(video_id)s, %(title)s, %(published_at)s, %(duration)s, %(video_type)s, %(view_count)s, %(like_count)s, %(comment_count)s)'
             update_set = """
-                "Video_Title" = EXCLUDED."Video_Title",
-                "Upload_Date" = EXCLUDED."Upload_Date",
-                "Duration" = EXCLUDED."Duration",
-                "Video_Type" = EXCLUDED."Video_Type",
-                "Video_Views" = EXCLUDED."Video_Views",
-                "Likes_Count" = EXCLUDED."Likes_Count",
-                "Comments_Count" = EXCLUDED."Comments_Count"
+                title = EXCLUDED.title,
+                published_at = EXCLUDED.published_at,
+                duration = EXCLUDED.duration,
+                video_type = EXCLUDED.video_type,
+                view_count = EXCLUDED.view_count,
+                like_count = EXCLUDED.like_count,
+                comment_count = EXCLUDED.comment_count
             """
-            columns = '("Video_ID", "Video_Title", "Upload_Date", "Duration", "Video_Type", "Video_Views", "Likes_Count", "Comments_Count")'
-            values = "(%(Video_ID)s, %(Video_Title)s, %(Upload_Date)s, %(Duration)s, %(Video_Type)s, %(Video_Views)s, %(Likes_Count)s, %(Comments_Count)s)"
+            id_key = "video_id"
 
-        # ২. UPSERT কমান্ড (INSERT + ON CONFLICT DO UPDATE)
         sql = f"""
             INSERT INTO {schema}.{table} {columns}
             VALUES {values}
-            ON CONFLICT ("Video_ID") 
+            ON CONFLICT (video_id)
             DO UPDATE SET {update_set};
         """
-        
         cur.execute(sql, row)
         conn.commit()
-        logger.info(f"Upserted (Insert/Update) row in {schema}: {row[mapping['id']]}")
+        logger.info(f"Upserted row in {schema}: {row[id_key]}")
 
     except Exception as e:
         conn.rollback()
         logger.error(f"Error in insert_rows ({schema}): {e}")
         raise e
 
+
 def update_rows(cur, conn, schema, row):
-    """
-    দ্রষ্টব্য: উপরের insert_rows এখন নিজেই আপডেট হ্যান্ডেল করতে পারে (Upsert)। 
-    তারপরেও যদি আলাদাভাবে আপডেট দরকার হয়, তবে এই ফাংশন ব্যবহার করুন।
-    """
     try:
         if schema == "staging":
-            mapping = {"id": "video_id", "title": "title", "views": "viewCount", "likes": "likeCount", "comments": "commentCount"}
+            sql = f"""
+                UPDATE {schema}.{table}
+                SET title = %(title)s,
+                    view_count = %(viewCount)s,
+                    like_count = %(likeCount)s,
+                    comment_count = %(commentCount)s
+                WHERE video_id = %(video_id)s;
+            """
         else:
-            mapping = {"id": "Video_ID", "title": "Video_Title", "views": "Video_Views", "likes": "Likes_Count", "comments": "Comments_Count"}
-
-        cur.execute(
-            f"""
-            UPDATE {schema}.{table}
-            SET "Video_Title" = %({mapping['title']})s,
-                "Video_Views" = %({mapping['views']})s, 
-                "Likes_Count" = %({mapping['likes']})s, 
-                "Comments_Count" = %({mapping['comments']})s
-            WHERE "Video_ID" = %({mapping['id']})s;
-            """,
-            row,
-        )
+            sql = f"""
+                UPDATE {schema}.{table}
+                SET title = %(title)s,
+                    view_count = %(view_count)s,
+                    like_count = %(like_count)s,
+                    comment_count = %(comment_count)s
+                WHERE video_id = %(video_id)s;
+            """
+        cur.execute(sql, row)
         conn.commit()
-        logger.info(f"Updated row with Video_ID: {row[mapping['id']]}")
+        logger.info(f"Updated row: {row.get('video_id')}")
     except Exception as e:
         conn.rollback()
         logger.error(f"Error updating row: {e}")
         raise e
+
 
 def delete_rows(cur, conn, schema, ids_to_delete):
     if not ids_to_delete:
         return
     try:
         cur.execute(
-            f'DELETE FROM {schema}.{table} WHERE "Video_ID" IN %s;',
+            f'DELETE FROM {schema}.{table} WHERE video_id IN %s;',
             (tuple(ids_to_delete),)
         )
         conn.commit()
